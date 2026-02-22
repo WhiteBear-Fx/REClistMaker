@@ -6,12 +6,12 @@ class Generator:
     def __init__(self, syllable_map: dict[str, tuple[str, str]]) -> None:
         self.syldict = SyllableDict().from_syllable_phoneme_map(syllable_map)
 
-        _map = {}
-        for left, right in self.syldict.get_syllable_map().values():
-            _map.setdefault(right, []).append(left)
-            self._rl_map: dict[str, list[str]] = _map
+        self._rl_map: dict[str, list[str]] = self._create_rl_map()
+        
+        self._syl_set: set[str] = set(syllable_map.keys())
 
-        self._syl_set: set[str] = {_ for _ in syllable_map.keys()}
+        self._syl_used_as_start: set[str] = set()
+        self._right_used_as_end: set[str] = set()
 
         self._redu:int = 0
         self._perfect_fluent_num: int = 0
@@ -27,7 +27,25 @@ class Generator:
             iter_depth: int,
             max_redu: int
     ) -> tuple[list[str], list[str]]:
-        audio_syllable_map = self.create_reclist(mode=mode, max_length=max_length, sss_first=sss_first, iter_depth=iter_depth, max_redu=max_redu)
+        self._rl_map = self._create_rl_map()
+
+        self._syl_set = set(self.syldict.get_syllable_map().keys())
+
+        self._syl_used_as_start.clear()
+        self._right_used_as_end.clear()
+
+        self._perfect_fluent_num = 0
+        self._in_turn_fluent_num = 0
+        self._not_fluent_num = 0
+        self._redu = 0
+        
+        audio_syllable_map = self.create_reclist(
+            mode=mode, 
+            max_length=max_length, 
+            sss_first=sss_first, 
+            iter_depth=iter_depth, 
+            max_redu=max_redu
+        )
         oto = self.create_oto(bmp=bmp, audio_syllable_map=audio_syllable_map)
         return ([reclist for reclist in audio_syllable_map.keys()], oto)
 
@@ -48,6 +66,12 @@ class Generator:
             bmp: int
     ) -> list[str]:
         pass
+
+    def _create_rl_map(self):
+        _map = {}
+        for left, right in self.syldict.get_syllable_map().values():
+            _map.setdefault(right, []).append(left)
+        return _map
     
     def _cvvc_perfect_fluent(self, max_length: int) -> dict[str, list[tuple[str, str]]]:
         syl_map = self.syldict.get_syllable_map()
@@ -62,7 +86,6 @@ class Generator:
             lefts = self._rl_map.get(right, [])
             if not lefts:
                 continue
-
             total = len(lefts)
             full_chunks = total // max_length
             if full_chunks == 0:
@@ -89,6 +112,10 @@ class Generator:
                 for syl in syllable_names:
                     self._syl_set.remove(syl)
 
+                self._syl_used_as_start.add(syllable_names[0])
+                last_syl = syllable_names[-1]
+                self._right_used_as_end.add(syl_map[last_syl][1])
+
                 key = "_".join(syllable_names)
                 result[key] = phoneme_pairs
                 line_num += 1
@@ -100,7 +127,7 @@ class Generator:
         self._perfect_fluent_num = line_num
         return result
 
-    def _cvvc_in_turn_fluent(self, max_length: int, iter_depth:int , max_redu:int) -> list[str, list[str]]:
+    def _cvvc_in_turn_fluent(self, max_length: int, iter_depth: int, max_redu: int) -> dict[str, list[tuple[str, str]]]:
         pass
 
     def _cvvc_not_fluent(self, max_length: int) -> list[str, list[str]]:
@@ -157,3 +184,6 @@ class SyllableDict:
     def _set_to_empty(self) -> None:
         self._left_syl_map = {}
         self._right_syl_map = {}
+
+g = Generator({"ba": ("b", "a"), "da": ("d", "a"), "ca": ("c", "a"), "ka": ("k", "a")})
+print(g._cvvc_in_turn_fluent(4, 2, 80))
