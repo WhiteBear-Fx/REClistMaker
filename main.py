@@ -19,7 +19,7 @@ class CLI:
 
         self._command_generate.add_argument("-i", "--input", required=True, help="Import file path.")
         self._command_generate.add_argument("-o", "--output", help="Output file path.")
-        self._command_generate.add_argument("-m", "--mode", choices=["VCV", "CVVC"], help="CVVC or VCV mode, default CVVC.")
+        self._command_generate.add_argument("-m", "--mode", choices=["VCV", "CVVC"], help="CVVC, VCV or VCV_WITH_VC mode, default CVVC.")
         self._command_generate.add_argument( "-b", "--bpm",type=int, help="Used to specify the speed unit bpm for recording BGM, default is 120.")
         self._command_generate.add_argument("-l", "--max-length", choices=range(2, 9), type=int, help="The maximum number of syllables per line is 8, \
                                             with a default of 6.")
