@@ -1,4 +1,4 @@
-# Smooth Recording List Generator
+# Smooth Recording List Maker
 
 English | [简体中文](./doc/readme_zh.md)
 
@@ -49,12 +49,12 @@ end_flag = true
 
 - **`[config]`** (optional)  
   Additional options controlling the generation behavior, including the following fields:
-
+  
   - **`n_fade`** (array, optional)  
     A list of consonant groups for which **crossfading should be disabled**.  
     Corresponds to the `crossfade flag = 1` in `[CONSONANT]` in `presamp.ini` (meaning no crossfade).  
     Typically, plosives (e.g., `k`, `t`, `p`, `ch`) require disabled crossfading, while other consonants have crossfading enabled by default (`=0`).
-
+  
   - **`end_flag`** (boolean, optional, default `true`)  
     Determines whether to automatically add ending phonemes (e.g., `R`) for rests.  
     Corresponds to the `[ENDFLAG]` functionality in `presamp.ini`. `true` means enabled.
@@ -134,3 +134,4 @@ The recording list consists of multiple lines, each containing a sequence of syl
 
 - **`-o, --output`** (optional)  
   Path for the output `presamp.ini` file (excluding filename). If not specified, `presamp.ini` is generated in the same directory as the input file.
+  
