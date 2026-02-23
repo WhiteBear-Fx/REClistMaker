@@ -1,22 +1,22 @@
-# Smooth Recording List Maker
+# Smooth Recording Table Generator
 
-English | [简体中文](./doc/readme_zh.md)
+[简体中文](./doc/readme_zh.md) | English
 
 ## Introduction
 
-This is a simple program written in Python that generates smooth CVVC or VCV recording lists. Currently, it only supports command-line usage.
+This is a simple program written in Python that generates smooth CVVC or VCV recording tables. Currently, it only supports command-line usage.
 
 ## How to Use
 
-The program generates a `recording list` and `oto.ini` template using a dictionary in `.toml` format. It can also convert between `.toml` and `presamp.ini` formats.
+The program uses a dictionary in `.toml` format to generate a `recording table` and an `oto.ini` template. It can also convert between `.toml` and `presamp.ini` formats.
 
-Below is an introduction to the dictionary format and available program parameters.
+Below is an introduction to the dictionary format and the available program parameters.
 
 ### Symbol Table
 
-- **S**: Syllable, a complete pronunciation symbol, e.g., "da".
-- **L**: Left vowel, the consonant part of CVVC, e.g., the left vowel of "da" is "d".
-- **R**: Right vowel, the vowel part of CVVC, e.g., the right vowel of "da" is "a".
+- **S**: Syllable, a complete phonetic symbol, e.g., "da".
+- **L**: Left vowel, the consonant part of a CVVC syllable, e.g., the left vowel of "da" is "d".
+- **R**: Right vowel, the vowel part of a CVVC syllable, e.g., the right vowel of "da" is "a".
 
 **Special phonemes, such as breath sounds or glottal stops, should not be treated as vowels.**
 
@@ -40,28 +40,28 @@ end_flag = true
 #### Field Descriptions
 
 - **`version`** (required)  
-  The version number of the configuration file format. Currently, it must be greater than or equal to `"1.0.0"` (values greater than `1.0.0` have no practical significance).
+  The version number of the configuration file format. Must be greater than or equal to `"1.0.0"` (values greater than `1.0.0` have no practical significance).
 
 - **`[syl]`** (required)  
-  The syllable mapping table. Each entry follows the format `S = ["L", "R"]`.  
-  For example, `da = ["d", "a"]` means the left vowel (L) of the syllable `da` is `d`, and the right vowel (R) is `a`.  
-  The program automatically generates vowel and consonant tables based on all provided syllables.
+  Syllable mapping table. Each entry follows the format `S = ["L", "R"]`.  
+  For example, `da = ["d", "a"]` means that the left vowel (L) of the syllable `da` is `d`, and the right vowel (R) is `a`.  
+  The program automatically generates the vowel and consonant tables based on all defined syllables.
 
 - **`[config]`** (optional)  
-  Additional options controlling the generation behavior, including the following fields:
-  
+  Additional options to control generation behavior, including the following fields:
+
   - **`n_fade`** (array, optional)  
     A list of consonant groups for which **crossfading should be disabled**.  
-    Corresponds to the `crossfade flag = 1` in `[CONSONANT]` in `presamp.ini` (meaning no crossfade).  
-    Typically, plosives (e.g., `k`, `t`, `p`, `ch`) require disabled crossfading, while other consonants have crossfading enabled by default (`=0`).
-  
+    Corresponds to `crossfade flag = 1` in the `[CONSONANT]` section of `presamp.ini` (meaning no crossfade).  
+    Typically, plosives (e.g., `k`, `t`, `p`, `ch`) require crossfading to be disabled, while other consonants have it enabled by default (`=0`).
+
   - **`end_flag`** (boolean, optional, default `true`)  
-    Determines whether to automatically add ending phonemes (e.g., `R`) for rests.  
-    Corresponds to the `[ENDFLAG]` functionality in `presamp.ini`. `true` means enabled.
+    Whether to automatically add a trailing phoneme (e.g., `R`) for rests.  
+    Corresponds to the `[ENDFLAG]` feature in `presamp.ini`. `true` means enabled.
 
-Other configurations in `presamp.ini` (such as vowel and consonant tables) are automatically derived from `[syl]`.
+Other configurations in `presamp.ini` (such as vowel and consonant tables) are automatically derived by the program from `[syl]`.
 
-**Please note that any configuration items not mentioned here will be lost after conversion.**
+**Please note that all unspecified configuration items will be lost after conversion.**
 
 ## Command Line Reference
 
@@ -83,30 +83,30 @@ The program performs different operations through subcommands. Currently, three 
 
 #### `generate` Command (alias `gen`)
 
-**Purpose**: Generate a recording list file (e.g., `.txt`), an `oto.ini` template, and `presamp.ini` based on the syllable dictionary.
+**Purpose**: Generates a `.txt` recording table file, an `oto.ini` template, and a `presamp.ini` file based on the `.toml` syllable dictionary.
 
-The recording list consists of multiple lines, each containing a sequence of syllables (e.g., S1, S2, S3). The program uses the user-provided syllable set (each syllable defined by left vowel L and right vowel R) and the selected mode (CVVC or VCV) to generate a table covering all necessary transitional components. It also aims to make adjacent syllables in each line as "smooth" as possible. Smoothness is categorized as fully smooth (adjacent syllables share left or right vowels) or periodically alternating smoothness (repeating categories at fixed intervals). The program constructs line sequences using a search algorithm, and the following parameters can control the search behavior.
+The recording table consists of multiple lines, each containing a sequence of syllables (e.g., S1, S2, S3). The program uses the user-provided syllable set (each syllable defined by its left vowel L and right vowel R) and the selected mode (CVVC or VCV) to generate a table covering all required transitional components, while also making adjacent syllables within each line as "smooth" as possible. Smoothness is categorized into fully smooth (adjacent syllables share a left or right vowel) and periodically alternating smooth (categories repeat at fixed intervals). The program constructs the line sequences using a search algorithm, and the following parameters control the search behavior.
 
 - **`-i, --input`** (required)  
-  Path to the input TOML-format syllable dictionary file.
+  Path to the input TOML format syllable dictionary file.
 
 - **`-o, --output`** (optional)  
-  Path for output files (excluding filenames). The program generates: `<output_path>/REClist.txt`, `<output_path>/oto.ini`, and `<output_path>/presamp.ini`. If not specified, it is automatically generated based on the input filename.
+  Path for the output files (without filenames). The program generates: `<output path>/REClist.txt`, `<output path>/oto.ini`, and `<output path>/presamp.ini`. If not specified, it is automatically generated based on the input filename.
 
 - **`-m, --mode`** (optional, default `CVVC`)  
-  Select the generation mode. Options: `VCV`, `CVVC`, or `VCV_WITH_VC`.
+  Select the generation mode. Options are `VCV`, `CVVC`, or `VCV_WITH_VC`.
 
 - **`-b, --bpm`** (optional, default `120`)  
-  The tempo (BPM) of the background music for recording, used to generate the `oto.ini` template.
+  The tempo of the background music (in BPM), used to generate the `oto.ini` template.
 
 - **`-l, --max-length`** (optional, default `6`)  
-  The maximum number of syllables per line. Range: 2 to 8.
+  The maximum number of syllables per line. Allowed values range from 2 to 8.
 
 - **`-s, --SSS-first`** (optional, flag)  
-  Prioritize using triple-syllable repetition patterns, such as sequences like `da_da_da`, where the third syllable can be lengthened for use as a long vowel suffix (`L` suffix).
+  Prioritize using three-syllable repeating patterns, such as sequences like `da_da_da`, where the third syllable can be extended for use as an `L` suffix long vowel.
 
 - **`-d, --iter-depth`** (optional)  
-  The maximum iteration depth when searching for the optimal arrangement order. Increasing this value increases computation time and may not necessarily improve smoothness. The default and maximum values are half of the `-l` parameter.
+  The maximum iteration depth when searching for the optimal arrangement order. Increasing this value may increase computation time without necessarily improving smoothness. The default and maximum values are half of the `-l` parameter.
 
 - **`-r, --max-redundancy`** (optional, default `50`)  
   The maximum number of redundant syllables allowed to improve smoothness.
@@ -115,23 +115,23 @@ The recording list consists of multiple lines, each containing a sequence of syl
 
 #### `from_presamp` Command (alias `fp`)
 
-**Purpose**: Convert an existing `presamp.ini` configuration file into the program's TOML syllable dictionary format for easier editing or regenerating recording lists.
+**Purpose**: Converts an existing `presamp.ini` configuration file into the program's TOML syllable dictionary format, making it easier to edit or regenerate the recording table.
 
 - **`-i, --input`** (required)  
   Path to the input `presamp.ini` file.
 
 - **`-o, --output`** (optional)  
-  Path for the output TOML file (excluding filename). If not specified, a file with the same name but a `.toml` extension is generated in the same directory as the input file.
+  Path for the output TOML file (without filename). If not specified, a file with the same name but a `.toml` extension is generated in the same directory as the input file.
 
 ---
 
 #### `to_presamp` Command (alias `tp`)
 
-**Purpose**: Convert the program's TOML syllable dictionary file into a `presamp.ini` configuration file for compatibility with existing UTAU toolchains (e.g., `autocvvc.exe`).
+**Purpose**: Converts the program's TOML syllable dictionary file into a `presamp.ini` configuration file, allowing compatibility with existing UTAU tools (such as `autocvvc.exe`).
 
 - **`-i, --input`** (required)  
   Path to the input TOML syllable dictionary file.
 
 - **`-o, --output`** (optional)  
-  Path for the output `presamp.ini` file (excluding filename). If not specified, `presamp.ini` is generated in the same directory as the input file.
+  Path for the output `presamp.ini` file (without filename). If not specified, `presamp.ini` is generated in the same directory as the input file.
   
