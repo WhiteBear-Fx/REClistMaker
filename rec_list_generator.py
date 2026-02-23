@@ -5,11 +5,10 @@ class Generator:
     """Generator for creating a REClist."""
     def __init__(self, syllable_map: dict[str, tuple[str, str]]) -> None:
         self.syldict = SyllableDict().from_syllable_phoneme_map(syllable_map)
-
-        self._rl_map: dict[str, list[str]] = self._create_rl_map()
         
-        self._syl_set: set[str] = set(syllable_map.keys())
+        self._rl_map: dict[str, list[str]] = self._create_rl_map()
 
+        self._syl_set: set[str] = set(syllable_map.keys())
         self._syl_used_as_start: set[str] = set()
         self._right_used_as_end: set[str] = set()
 
@@ -92,10 +91,10 @@ class Generator:
                 continue
 
             for i in range(full_chunks):
-                chunk_lefts = lefts[i * max_length : (i + 1) * max_length]
-
                 syllable_names = []
                 phoneme_pairs = []
+
+                chunk_lefts = lefts[i * max_length : (i + 1) * max_length]
 
                 first_syl = lr_to_syl[(chunk_lefts[0], right)]
                 syllable_names.append(first_syl)
@@ -126,6 +125,36 @@ class Generator:
 
         self._perfect_fluent_num = line_num
         return result
+    
+    def _create_pattern(self, p: int, m: int) -> list[tuple[list[int], int]]:
+        patterns = []
+        for r in range(2, p + 1):
+            if m % r != 0:
+                continue
+
+            def backtrack(labels: list[int], max_label: int):
+                if len(labels) == r:
+                    if max_label >= 1:
+                        patterns.append((labels[:], max_label + 1))
+                    return
+                for label in range(max_label + 1):
+                    labels.append(label)
+                    backtrack(labels, max_label)
+                    labels.pop()
+                labels.append(max_label + 1)
+                backtrack(labels, max_label + 1)
+                labels.pop()
+
+            backtrack([0], 0)
+
+        patterns.sort(key=lambda x: x[1])
+        return patterns
+
+    def _is_available(self, syl: str) -> bool:
+        return syl in self.syldict.get_syllable_map().keys()
+
+    def _try_build_in_turn(self, pattren, counts, right) -> tuple[dict[str, list[tuple[str, str]]], set[str]]:
+        pass
 
     def _cvvc_in_turn_fluent(self, max_length: int, iter_depth: int, max_redu: int) -> dict[str, list[tuple[str, str]]]:
         pass
@@ -184,6 +213,4 @@ class SyllableDict:
     def _set_to_empty(self) -> None:
         self._left_syl_map = {}
         self._right_syl_map = {}
-
-g = Generator({"ba": ("b", "a"), "da": ("d", "a"), "ca": ("c", "a"), "ka": ("k", "a")})
-print(g._cvvc_in_turn_fluent(4, 2, 80))
+        
