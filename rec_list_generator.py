@@ -4,13 +4,12 @@ from typing import Literal, Self
 class Generator:
     """Generator for creating a REClist."""
     def __init__(self, syllable_map: dict[str, tuple[str, str]]) -> None:
-        self.syldict = SyllableDict().from_syllable_phoneme_map(syllable_map)
-        
-        self._rl_map: dict[str, list[str]] = self._create_rl_map()
+        self.syllable_view = SyllableView().from_syllable_phoneme_map(syllable_map)
+        self._pair_view = RLPairView(syllable_map)
 
-        self._syl_set: set[str] = set(syllable_map.keys())
         self._syl_used_as_start: set[str] = set()
         self._right_used_as_end: set[str] = set()
+        self._syl_used_as_nonstart: set[str] = set()
 
         self._redu:int = 0
         self._perfect_fluent_num: int = 0
@@ -26,17 +25,16 @@ class Generator:
             iter_depth: int,
             max_redu: int
     ) -> tuple[list[str], list[str]]:
-        self._rl_map = self._create_rl_map()
-
-        self._syl_set = set(self.syldict.get_syllable_map().keys())
-
         self._syl_used_as_start.clear()
         self._right_used_as_end.clear()
+        self._syl_used_as_nonstart.clear()
 
         self._perfect_fluent_num = 0
         self._in_turn_fluent_num = 0
         self._not_fluent_num = 0
         self._redu = 0
+
+        self._pair_view = RLPairView(self.syllable_view.get_syllable_map())
         
         audio_syllable_map = self.create_reclist(
             mode=mode, 
@@ -65,65 +63,74 @@ class Generator:
             bmp: int
     ) -> list[str]:
         pass
-
-    def _create_rl_map(self):
-        _map = {}
-        for left, right in self.syldict.get_syllable_map().values():
-            _map.setdefault(right, []).append(left)
-        return _map
     
-    def _cvvc_perfect_fluent(self, max_length: int) -> dict[str, list[tuple[str, str]]]:
-        syl_map = self.syldict.get_syllable_map()
+    def _cvvc_perfect_fluent(self, max_length: int, use_right_view: bool) -> dict[str, list[tuple[str, str]]]:
+        syl_map = self.syllable_view.get_syllable_map()
         lr_to_syl = {phonemes: syl for syl, phonemes in syl_map.items()}
-
-        right_order = list(self.syldict.get_right_syl_map().keys())
-
         result = {}
         line_num = 0
 
-        for right in right_order:
-            lefts = self._rl_map.get(right, [])
-            if not lefts:
-                continue
-            total = len(lefts)
-            full_chunks = total // max_length
-            if full_chunks == 0:
-                continue
+        if use_right_view:
+            primary_keys = self._pair_view.all_rights()
+            get_list = self._pair_view.get_lefts_for_right
+            pop_chunk = self._pair_view.pop_lefts_for_right
+        else:
+            primary_keys = self._pair_view.all_lefts()
+            get_list = self._pair_view.get_rights_for_left
+            pop_chunk = self._pair_view.pop_rights_for_left
 
-            for i in range(full_chunks):
+        for key in primary_keys:
+            while True:
+                items = get_list(key)
+                if len(items) < max_length:
+                    break
+                chunk = pop_chunk(key, max_length)
+                if not chunk:
+                    break
+
                 syllable_names = []
                 phoneme_pairs = []
 
-                chunk_lefts = lefts[i * max_length : (i + 1) * max_length]
-
-                first_syl = lr_to_syl[(chunk_lefts[0], right)]
+                if use_right_view:
+                    first_syl = lr_to_syl[(chunk[0], key)]
+                else:
+                    first_syl = lr_to_syl[(key, chunk[0])]
                 syllable_names.append(first_syl)
                 phoneme_pairs.append(("-", first_syl))
 
-                for left in chunk_lefts[1:]:
-                    syl = lr_to_syl[(left, right)]
+                for item in chunk[1:]:
+                    if use_right_view:
+                        syl = lr_to_syl[(item, key)]
+                    else:
+                        syl = lr_to_syl[(key, item)]
                     syllable_names.append(syl)
-                    phoneme_pairs.append((right, left))
+
+                    if use_right_view:
+                        phoneme_pairs.append((key, item))
+                    else:
+                        phoneme_pairs.append((item, key))
+
                     phoneme_pairs.append((syl, ""))
 
-                phoneme_pairs.append((right, "-"))
+                self._syl_used_as_start.add(syllable_names[0])
+                for syl in syllable_names[1:]:
+                    self._syl_used_as_nonstart.add(syl)
 
-                for syl in syllable_names:
-                    self._syl_set.remove(syl)
+                if use_right_view:
+                    last_right = key
+                else:
+                    last_right = chunk[-1]
+                phoneme_pairs.append((last_right, "-"))
 
                 self._syl_used_as_start.add(syllable_names[0])
                 last_syl = syllable_names[-1]
                 self._right_used_as_end.add(syl_map[last_syl][1])
 
-                key = "_".join(syllable_names)
-                result[key] = phoneme_pairs
+                key_str = "_".join(syllable_names)
+                result[key_str] = phoneme_pairs
                 line_num += 1
 
-            del lefts[:full_chunks * max_length]
-            if not lefts:
-                del self._rl_map[right]
-
-        self._perfect_fluent_num = line_num
+        self._perfect_fluent_num += line_num
         return result
     
     def _create_pattern(self, p: int, m: int) -> list[tuple[list[int], int]]:
@@ -150,19 +157,16 @@ class Generator:
         patterns.sort(key=lambda x: x[1])
         return patterns
 
-    def _is_available(self, syl: str) -> bool:
-        return syl in self.syldict.get_syllable_map().keys()
-
     def _try_build_in_turn(self, pattren, counts, right) -> tuple[dict[str, list[tuple[str, str]]], set[str]]:
         pass
 
     def _cvvc_in_turn_fluent(self, max_length: int, iter_depth: int, max_redu: int) -> dict[str, list[tuple[str, str]]]:
         pass
 
-    def _cvvc_not_fluent(self, max_length: int) -> list[str, list[str]]:
+    def _cvvc_not_fluent(self, max_length: int) -> dict[str, list[tuple[str, str]]]:
         pass
 
-class SyllableDict:
+class SyllableView:
     def __init__(self) -> None:
         self._syllable_map: dict[str, tuple[str, str]] = {}
 
@@ -213,4 +217,62 @@ class SyllableDict:
     def _set_to_empty(self) -> None:
         self._left_syl_map = {}
         self._right_syl_map = {}
+
+class RLPairView:
+    def __init__(self, syllable_map: dict[str, tuple[str, str]]):
+        self._right_to_lefts = {}
+        self._left_to_rights = {}
         
+        for syl, (left, right) in syllable_map.items():
+            self._right_to_lefts.setdefault(right, []).append(left)
+            self._left_to_rights.setdefault(left, []).append(right)
+    
+    def get_lefts_for_right(self, right: str) -> list[str]:
+        return self._right_to_lefts.get(right, []).copy()
+    
+    def get_rights_for_left(self, left: str) -> list[str]:
+        return self._left_to_rights.get(left, []).copy()
+    
+    def all_rights(self) -> list[str]:
+        return list(self._right_to_lefts.keys())
+    
+    def all_lefts(self) -> list[str]:
+        return list(self._left_to_rights.keys())
+    
+    def pop_lefts_for_right(self, right: str, count: int) -> list[str]:
+        if right not in self._right_to_lefts:
+            return []
+        lefts = self._right_to_lefts[right]
+        take = min(count, len(lefts))
+        popped = lefts[:take]
+        # 更新左元视角
+        for left in popped:
+            if left in self._left_to_rights:
+                rights = self._left_to_rights[left]
+                if right in rights:
+                    rights.remove(right)
+                    if not rights:
+                        del self._left_to_rights[left]
+        # 更新右元视角
+        self._right_to_lefts[right] = lefts[take:]
+        if not self._right_to_lefts[right]:
+            del self._right_to_lefts[right]
+        return popped
+    
+    def pop_rights_for_left(self, left: str, count: int) -> list[str]:
+        if left not in self._left_to_rights:
+            return []
+        rights = self._left_to_rights[left]
+        take = min(count, len(rights))
+        popped = rights[:take]
+        for right in popped:
+            if right in self._right_to_lefts:
+                lefts = self._right_to_lefts[right]
+                if left in lefts:
+                    lefts.remove(left)
+                    if not lefts:
+                        del self._right_to_lefts[right]
+        self._left_to_rights[left] = rights[take:]
+        if not self._left_to_rights[left]:
+            del self._left_to_rights[left]
+        return popped
