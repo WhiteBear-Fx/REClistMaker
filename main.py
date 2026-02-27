@@ -3,7 +3,13 @@ import sys
 
 
 class CLI:
-    def __init__(self, version) -> None:
+    """
+    Command-line interface
+
+    :param version: Application version number
+    """
+
+    def __init__(self, version: str) -> None:
         self._version = version
 
         self._parser = argparse.ArgumentParser()
@@ -19,6 +25,7 @@ class CLI:
         self._add_args()
 
     def _add_args(self) -> None:
+        """Add arguments."""
         self._parser.add_argument(
             "-v", "--version", action="version", version=self._version)
 
@@ -50,11 +57,17 @@ class CLI:
             "-o", "--output", help="Output file path.")
 
     def get_args(self) -> argparse.Namespace:
+        """
+        Get the parsed arguments.
+
+        :return: argparse.Namespace object.
+        """
         return self._parser.parse_args()
 
 
 class App:
     def __init__(self) -> None:
+        """Main APP class."""
         self._version = "0.0.1"
 
         if len(sys.argv) == 1:
