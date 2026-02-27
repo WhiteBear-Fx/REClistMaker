@@ -1,5 +1,5 @@
-from typing import Literal, Self
-from .views import RLPairView, SyllableView
+from typing import Literal
+from views import RLPairView, SyllableView
 
 class Generator:
     """Generator for creating a REClist.
