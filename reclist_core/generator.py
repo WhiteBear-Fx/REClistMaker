@@ -9,7 +9,7 @@ class Generator:
     """
 
     def __init__(self, syllable_map: dict[str, tuple[str, str]]) -> None:
-        self.syllable_view = SyllableView().from_syllable_phoneme_map(
+        self._syllable_view = SyllableView().from_syllable_phoneme_map(
             syllable_map)
         self._pair_view = RLPairView(syllable_map)
 
@@ -55,7 +55,7 @@ class Generator:
         self._not_fluent_num = 0
         self._redu = 0
 
-        self._pair_view = RLPairView(self.syllable_view.get_syllable_map())
+        self._pair_view = RLPairView(self._syllable_view.get_syllable_map())
 
         audio_syllable_map = self.create_reclist(
             mode=mode,
@@ -93,7 +93,7 @@ class Generator:
 
         :return: A reclist dictionary where keys are lines and values are lists of phoneme pairs for that line, i.e., {line: [(left, right)]}.
         """
-        syl_map = self.syllable_view.get_syllable_map()
+        syl_map = self._syllable_view.get_syllable_map()
         lr_to_syl = {phonemes: syl for syl, phonemes in syl_map.items()}
         result = {}
         line_num = 0
