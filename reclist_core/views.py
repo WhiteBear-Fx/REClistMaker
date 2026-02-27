@@ -1,5 +1,6 @@
 from typing import Self
 
+
 class SyllableView:
     """
     Phoneme table views from different perspectives.
@@ -7,6 +8,7 @@ class SyllableView:
     The values for these views must be explicitly set via member functions
     with a ``from`` prefix (e.g., ``from_syllable_phoneme_map()``).
     """
+
     def __init__(self) -> None:
         self._syllable_map: dict[str, tuple[str, str]] = {}
 
@@ -34,10 +36,13 @@ class SyllableView:
 
         :return: self
         """
-        syl_to_left = {syl: left for left, syllables in left_map.items() for syl in syllables}
-        syl_to_right = {syl: right for right, syllables in right_map.items() for syl in syllables}
+        syl_to_left = {syl: left for left, syllables in left_map.items()
+                       for syl in syllables}
+        syl_to_right = {syl: right for right,
+                        syllables in right_map.items() for syl in syllables}
 
-        new_map = {syl: (syl_to_left[syl], syl_to_right[syl]) for syl in syl_to_left}
+        new_map = {syl: (syl_to_left[syl], syl_to_right[syl])
+                   for syl in syl_to_left}
 
         self._set_to_empty()
         self._syllable_map = new_map
@@ -79,7 +84,7 @@ class SyllableView:
                 _map.setdefault(right, []).append(syl)
             self._syl_to_right = _map
         return self._syl_to_right
-    
+
     def _check(self) -> None:
         """
         Check whether the instance is ready (whether data has been correctly read via a `from`-prefixed method).
@@ -87,12 +92,14 @@ class SyllableView:
         :raise ValueError: There is no internal data, please call the 'from' prefix method.
         """
         if not self._syllable_map:
-            raise ValueError("There is no internal data, please call the 'from' prefix method.")
-        
+            raise ValueError(
+                "There is no internal data, please call the 'from' prefix method.")
+
     def _set_to_empty(self) -> None:
         """Clear the instance."""
         self._syl_to_left_map = {}
         self._syl_to_right = {}
+
 
 class RLPairView:
     """
@@ -100,14 +107,15 @@ class RLPairView:
 
     :param syllable_map: Syllable mapping table in the format {syllable: (left, right)}.
     """
+
     def __init__(self, syllable_map: dict[str, tuple[str, str]]):
         self._right_to_lefts = {}
         self._left_to_rights = {}
-        
+
         for syl, (left, right) in syllable_map.items():
             self._right_to_lefts.setdefault(right, []).append(left)
             self._left_to_rights.setdefault(left, []).append(right)
-    
+
     def get_lefts_for_right(self, right: str) -> list[str]:
         """
         Get the left phonemes that are not combined with the given right phoneme.
@@ -116,7 +124,7 @@ class RLPairView:
         :return: List of left phonemes.
         """
         return self._right_to_lefts.get(right, []).copy()
-    
+
     def get_rights_for_left(self, left: str) -> list[str]:
         """
         Get the right phonemes that are not combined with the given left phoneme.
@@ -125,7 +133,7 @@ class RLPairView:
         :return: List of right phonemes.
         """
         return self._left_to_rights.get(left, []).copy()
-    
+
     def all_rights(self) -> list[str]:
         """
         Get all currently uncombined right phonemes.
@@ -133,7 +141,7 @@ class RLPairView:
         :return: List of right phonemes.
         """
         return list(self._right_to_lefts.keys())
-    
+
     def all_lefts(self) -> list[str]:
         """
         Get all currently uncombined left phonemes.
@@ -141,7 +149,7 @@ class RLPairView:
         :return: List of left phonemes.
         """
         return list(self._left_to_rights.keys())
-    
+
     def pop_lefts_for_right(self, right: str, count: int) -> list[str]:
         """
         Remove left phonemes not combined with the specified right phoneme and return the removed list.
@@ -168,7 +176,7 @@ class RLPairView:
         if not self._right_to_lefts[right]:
             del self._right_to_lefts[right]
         return popped
-    
+
     def pop_rights_for_left(self, left: str, count: int) -> list[str]:
         """
         Remove right phonemes not combined with the specified left phoneme and return the removed list.

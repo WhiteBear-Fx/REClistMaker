@@ -1,30 +1,34 @@
 from typing import Literal
 from views import RLPairView, SyllableView
 
+
 class Generator:
     """Generator for creating a REClist.
-    
+
     :param syllable_map: A syllable mapping table in the format {syllable: (right, left)}.
     """
+
     def __init__(self, syllable_map: dict[str, tuple[str, str]]) -> None:
-        self.syllable_view = SyllableView().from_syllable_phoneme_map(syllable_map)
+        self.syllable_view = SyllableView().from_syllable_phoneme_map(
+            syllable_map)
         self._pair_view = RLPairView(syllable_map)
 
         self._syl_used_as_start: set[str] = set()
         self._right_used_as_end: set[str] = set()
         self._syl_used_as_nonstart: set[str] = set()
 
-        self._redu:int = 0
+        self._redu: int = 0
+
         self._perfect_fluent_num: int = 0
         self._in_turn_fluent_num: int = 0
-        self._not_fluent_num:int = 0
+        self._not_fluent_num: int = 0
 
     def generate(
-            self, 
-            mode: Literal["CVVC", "VCV", "VCV_WITH_VC"], 
+            self,
+            mode: Literal["CVVC", "VCV", "VCV_WITH_VC"],
             policy: Literal["DEFAULT", "NO_IN_TURN"],
-            bmp: int, 
-            max_length: int, 
+            bmp: int,
+            max_length: int,
             sss_first: bool,
             iter_depth: int,
             max_redu: int
@@ -52,12 +56,12 @@ class Generator:
         self._redu = 0
 
         self._pair_view = RLPairView(self.syllable_view.get_syllable_map())
-        
+
         audio_syllable_map = self.create_reclist(
-            mode=mode, 
-            max_length=max_length, 
-            sss_first=sss_first, 
-            iter_depth=iter_depth, 
+            mode=mode,
+            max_length=max_length,
+            sss_first=sss_first,
+            iter_depth=iter_depth,
             max_redu=max_redu
         )
         oto = self.create_oto(bmp=bmp, audio_syllable_map=audio_syllable_map)
@@ -65,7 +69,7 @@ class Generator:
 
     def create_reclist(
             self,
-            mode: Literal["CVVC", "VCV", "VCV_WITH_VC"], 
+            mode: Literal["CVVC", "VCV", "VCV_WITH_VC"],
             max_length: int,
             sss_first: bool,
             iter_depth: int,
@@ -73,26 +77,21 @@ class Generator:
     ) -> dict[str, list[str]]:
         pass
 
-        
     def create_oto(
             self,
             audio_syllable_map: dict[str, list[str]],
             bmp: int
     ) -> list[str]:
         pass
-    
+
     def _cvvc_perfect_fluent(self, max_length: int, use_right_view: bool) -> dict[str, list[tuple[str, str]]]:
         """
         Generate a perfectly smooth CVVC reclist.
 
         :param max_length: Maximum line length.
-        :param use_right_view: After initial generation,
-            some phonemes may remain because they are insufficient
-            to form a full line. If this flag is set, attempt again
-            from the perspective of right phonemes.
+        :param use_right_view: After initial generation, some phonemes may remain because they are insufficient to form a full line. If this flag is set, attempt again from the perspective of right phonemes.
 
-        :return: A reclist dictionary where keys are lines and
-            values are lists of phoneme pairs for that line, i.e., {line: [(left, right)]}.
+        :return: A reclist dictionary where keys are lines and values are lists of phoneme pairs for that line, i.e., {line: [(left, right)]}.
         """
         syl_map = self.syllable_view.get_syllable_map()
         lr_to_syl = {phonemes: syl for syl, phonemes in syl_map.items()}
@@ -161,18 +160,14 @@ class Generator:
 
         self._perfect_fluent_num += line_num
         return result
-    
+
     def _create_pattern(self, p: int, m: int) -> list[tuple[list[int], int]]:
         """
         Generate all possible integer sequence patterns.
 
         :param p: Maximum sequence length (inclusive).
         :param m: Divisor condition for filtering valid lengths r.
-        :return: A list of tuples (sequence, num_labels), where
-            sequence is a list of integers of length r, and
-            num_labels is the number of distinct integers in the sequence
-            (i.e., max_label + 1, at least 2).
-            The list is sorted in ascending order of num_labels.
+        :return: A list of tuples (sequence, num_labels), where sequence is a list of integers of length r, and num_labels is the number of distinct integers in the sequence (i.e., max_label + 1, at least 2). The list is sorted in ascending order of num_labels.
         """
         patterns = []
         for r in range(2, p + 1):
