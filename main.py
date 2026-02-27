@@ -2,10 +2,10 @@ import argparse
 import sys
 
 
-VERSION = "0.0.1"
-
 class CLI:
-    def __init__(self) -> None:
+    def __init__(self, version) -> None:
+        self._version = version
+
         self._parser = argparse.ArgumentParser()
         self._subparser = self._parser.add_subparsers(title="command", required=True, help="Executable command group.")
 
@@ -15,7 +15,7 @@ class CLI:
         self._add_args()
     
     def _add_args(self) -> None:
-        self._parser.add_argument("-v", "--version", action="version", version=VERSION)
+        self._parser.add_argument("-v", "--version", action="version", version=self._version)
 
         self._command_generate.add_argument("-i", "--input", required=True, help="Import file path.")
         self._command_generate.add_argument("-o", "--output", help="Output file path.")
@@ -40,10 +40,12 @@ class CLI:
     
 class App:
     def __init__(self) -> None:
+        self._version = "0.0.1"
+        
         if len(sys.argv) == 1:
             print("GUI access is currently not supported. Please use the -- help command to view the CLI manual.")
         else:
-            cli = CLI()
+            cli = CLI(self._version)
             args = cli.get_args()
     
 if __name__ == "__main__":
