@@ -94,6 +94,8 @@ class Generator:
         result = {}
         line_num = 0
 
+        # TODO: Pop should not be used, but should be removed one by one based on the results.
+
         if use_right_view:
             primary_keys = self._pair_view.all_rights()
             get_list = self._pair_view.get_lefts_for_right
@@ -187,7 +189,7 @@ class Generator:
         patterns.sort(key=lambda x: x[1])
         return patterns
 
-    def _try_build_in_turn(self, pattrens: list[tuple[list[int], int]], max_length, use_right_view: bool) -> dict[str, list[tuple[str, str]]]:
+    def _cvvc_in_turn_fluent(self, pattrens: list[tuple[list[int], int]], max_length: int, use_right_view: bool) -> dict[str, list[tuple[str, str]]]:
         syl_map = self._syllable_view.get_syllable_map()
         lr_to_syl = {phonemes: syl for syl, phonemes in syl_map.items()}
         result: dict[str, list[tuple[str, str]]] = {}
@@ -204,23 +206,112 @@ class Generator:
             all_phonemes = get_all_phonemes()
             pattern_len = len(pattren[0])
 
+            # TODO: Use while to manually process the index, as the contents of the iterating container will be deleted inside the loop.
             for i in range(len(all_phonemes) - pattern_len + 1):
                 phonemes = all_phonemes[i:i + pattern_len]
 
-                if len(phonemes) < pattern_len:
-                    break
+                # TODO: Inline nested functions.
 
-                for offset in range(pattern_len):
-                    phonemes_pattren: list[str] = []
+                def _build_by_phonemes(phonemes, pattern_len) -> tuple[bool, dict[str, list[tuple[str, str]]]]:
+                    line_result: dict[str, list[tuple[str, str]]] = {}
 
-                    for label in pattren[0]:
-                        index = (label + offset) % pattern_len
-                        phonemes_pattren.append(phonemes[index])
+                    if len(phonemes) < pattern_len:
+                        return (False, {})
 
-        # TODO: The generation logic needs to be improved
+                    # TODO: Remove unnecessary rotations.
+                    for offset in range(pattern_len):
+                        phonemes_pattren: list[str] = []
 
-    def _cvvc_in_turn_fluent(self, max_length: int, iter_depth: int, max_redu: int) -> dict[str, list[tuple[str, str]]]:
-        pass
+                        for label in pattren[0]:
+                            index = (label + offset) % pattern_len
+                            phonemes_pattren.append(phonemes[index])
+
+                        phonemes_pattren = phonemes_pattren * \
+                            (max_length // pattern_len)
+
+                        syllable_names = []
+                        phoneme_pairs = []
+                        available: dict[str, list[str]] = {}
+
+                        first = True
+
+                        for p in phonemes_pattren:
+
+                            if first:
+                                first = False
+
+                                if p not in available.keys():
+                                    if get_list(p):
+                                        available[p] = get_list(p)
+                                    else:
+                                        all_phonemes.remove(p)
+                                        return (False, {})
+
+                                partner = available[p][0]
+                                available[p].pop()
+
+                                if use_right_view:
+                                    first_syl = lr_to_syl[(partner, p)]
+                                else:
+                                    first_syl = lr_to_syl[(p, partner)]
+
+                                syllable_names.append(first_syl)
+                                phoneme_pairs.append(("-", first_syl))
+                                continue
+
+                            partners = available[p]
+
+                            if not partners:
+                                return (False, {})
+
+                            partner = partners[0]
+                            available[p].pop()
+
+                            if use_right_view:
+                                syl = lr_to_syl[(partner, p)]
+                            else:
+                                syl = lr_to_syl[(p, partner)]
+                            syllable_names.append(syl)
+
+                            if use_right_view:
+                                phoneme_pairs.append((p, partner))
+                            else:
+                                phoneme_pairs.append((partner, p))
+
+                            phoneme_pairs.append((syl, ""))
+
+                        if len(syllable_names) == max_length:
+                            self._syl_unused_as_start.remove(syllable_names[0])
+
+                            for syl in syllable_names[1:]:
+                                self._syl_unused_as_nonstart.remove(syl)
+
+                            if use_right_view:
+                                last_right = phonemes_pattren[-1]
+                            else:
+                                last_right = phoneme_pairs[-1][1]
+                            phoneme_pairs.append((last_right, "-"))
+
+                            self._right_unused_as_end.remove(last_right)
+
+                            reclist_line_str = "_".join(syllable_names)
+                            line_result[reclist_line_str] = phoneme_pairs
+
+                            for left, right in phoneme_pairs:
+                                if left != "-" and right != "-":
+                                    if right != "":
+                                        self._pair_view.remove_pair(
+                                            left, right)
+                            return (True, line_result)
+                        else:
+                            return (False, {})
+                    return (False, {})
+
+                success, line_result = _build_by_phonemes(
+                    phonemes, pattern_len)
+                if success:
+                    line_num += 1
+                    result.update(line_result)
 
     def _cvvc_not_fluent(self, max_length: int) -> dict[str, list[tuple[str, str]]]:
         pass
